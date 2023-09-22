@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Few Shot Prompting</title>
+    <link rel="stylesheet" href="../static/css/grading_assistant.css">
+    <style>
+    
+    </style>
+</head>
+<body>
+    <h2>For Few Shot Prompting, please provide at least 2 example scores</h2>
+    
+    <div class="container">
+        <div class="examples">
+
+          <div class="enter_id">
+            <div class="input-group"><label for="student-id-input-2">Student ID Example 1</label></div>
+            <input type="text" id="student-id-input-1" placeholder="Enter Student ID">
+            <button id="search-button-1">Search</button>
+            <div id="student-answer-1"></div>
+            
+            <div class="input-group"><label for="student-id-input-2">Score Example 1</label></div>
+            <input type="number" id="student-score-input-1" step="0.5" placeholder="Enter Score">
+          </div>
+
+          
+
+          <div class="enter_id">
+            <div class="input-group"><label for="student-id-input-2">Student ID Example 2</label></div>
+            <input type="text" id="student-id-input-2" placeholder="Enter Student ID">
+            <button id="search-button-2">Search</button>
+            <div id="student-answer-2"></div>
+
+            <div class="input-group"><label for="student-id-input-2">Score Example 2</label></div>
+            <input type="number" id="student-score-input-2" step="0.5" placeholder="Enter Score">
+          </div>
+          
+            
+            <div class="button-container">
+            <button id="submit-button">Submit and Score</button></div>
+        
+    </div>
+      
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var searchButton1 = document.getElementById('search-button-1');
+            var searchButton2 = document.getElementById('search-button-2');
+            var studentIdInput1 = document.getElementById('student-id-input-1');
+            var studentIdInput2 = document.getElementById('student-id-input-2');
+            var studentScoreInput1 = document.getElementById('student-score-input-1');
+            var studentScoreInput2 = document.getElementById('student-score-input-2');
+            var studentAnswerElement1 = document.getElementById('student-answer-1');
+            var studentAnswerElement2 = document.getElementById('student-answer-2');
+            var submitButton = document.getElementById('submit-button');
+
+            searchButton1.addEventListener('click', function() {
+                var studentId = studentIdInput1.value.trim();
+                var studentScore = studentScoreInput1.value.trim();
+                if (studentId !== '') {
+                    // Send the student ID and question group ID to the server
+                    fetch('/search', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ studentId: studentId, questionGroupId: '{{ question_group_id }}', score: studentScore })  // Pass the question group ID and score dynamically
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.studentAnswer) {
+                            // Display the student answer
+                            studentAnswerElement1.textContent = 'Student Answer: ' + data.studentAnswer;
+                        } else {
+                            // Student answer not found
+                            studentAnswerElement1.textContent = 'Student answer not found.';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                }
+            });
+
+            searchButton2.addEventListener('click', function() {
+                var studentId = studentIdInput2.value.trim();
+                var studentScore = studentScoreInput2.value.trim();
+                if (studentId !== '') {
+                    // Send the student ID and question group ID to the server
+                    fetch('/search', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ studentId: studentId, questionGroupId: '{{ question_group_id }}', score: studentScore })  // Pass the question group ID and score dynamically
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.studentAnswer) {
+                            // Display the student answer
+                            studentAnswerElement2.textContent = 'Student Answer: ' + data.studentAnswer;
+                        } else {
+                            // Student answer not found
+                            studentAnswerElement2.textContent = 'Student answer not found.';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                }
+            });
+
+            submitButton.addEventListener('click', function() {
+                var studentAnswer1 = studentAnswerElement1.textContent.replace('Student Answer: ', '');
+                var studentAnswer2 = studentAnswerElement2.textContent.replace('Student Answer: ', '');
+                var score1 = studentScoreInput1.value.trim();
+                var score2 = studentScoreInput2.value.trim();
+
+                // Send the data back to index.html
+                window.opener.receiveStudentAnswerAndScore(studentAnswer1, score1);
+                window.opener.receiveStudentAnswerAndScore(studentAnswer2, score2);
+
+                // Close the score window
+                window.close();
+            });
+
+
+        });
+
+
+    </script>
+</body>
+</html>

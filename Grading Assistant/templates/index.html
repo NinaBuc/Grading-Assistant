@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Grading Assistant</title>
+    <link rel="stylesheet" href="../static/css/grading_assistant.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="logo">
+            <img src="../static/Images/WU_Logo.png" alt="Logo">
+        </div>
+        <div class="right-buttons">
+            <a href="#"><i class="material-icons">account_circle</i></a>
+            <a href="#"><i class="material-icons">power_settings_new</i></a>
+        </div>
+    </div>
+
+    <h1>Welcome to the Grading Assistant!</h1>
+
+    <div class="upload">
+        <form method="POST" action="/" enctype="multipart/form-data">
+            <input type="file" name="csv_file" accept=".csv" required>
+            <button type="submit">Upload Exam</button>
+        </form>
+    </div>
+
+    {% if question_groups %}
+    <table>
+        <thead>
+            <tr>
+                <th>Exam Questions</th>
+            </tr>
+        </thead>
+        <tbody>
+            
+            {% for question_id, group in question_groups.items() %}
+            <!-- Clickable row for each question -->
+            <tr class="clickable-row">
+                <td>Question {{ question_id }}</td>
+            </tr>
+            <!-- Hidden row with question details and student answers -->
+            <tr class="hidden-row">
+                <td colspan="1">
+                    <strong>Question:</strong> <span class="question">{{ group['question'] }}</span><br>
+                    
+                    <button class="score-button" data-question-group-id="{{ question_id }}">Score Student Answers</button>
+
+                    <!-- Table for displaying studentID, student answers, Feedback and Score -->
+                    <table class="student-answers-table">
+                        <thead>
+                            <tr>
+                                <th>Student ID</th>
+                                <th>Student Answers</th>
+                                <th>Feedback</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i in range(group['student_ids']|length) %}
+                                <tr>
+                                    <td>{{ group['student_ids'][i] }}</td>
+                                    <td>{{ group['student_answers'][i] }}</td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <script>
+
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Event listeners for clickable rows
+            const rows = document.getElementsByClassName('clickable-row');
+            for (let i = 0; i < rows.length; i++) {
+                rows[i].addEventListener('click', function() {
+                    console.log('Clickable row clicked!');
+                    this.nextElementSibling.classList.toggle('hidden-row');
+                });
+            }
+            // Event listeners for score buttons
+            const scoreButtons = document.getElementsByClassName('score-button');
+            for (let i = 0; i < scoreButtons.length; i++) {
+                scoreButtons[i].addEventListener('click', function(event) {
+                    event.stopPropagation(); // Prevent row click event from triggering
+                    openScoreWindow(this);
+                });
+            }
+        });
+
+
+        // Variables for storing question, student answers, and score elements
+        var question;
+        var studentAnswers;
+        var scoreElements;
+        var feedbackElements;
+
+        function openScoreWindow(button) {
+            // Get question group ID, question and student answers
+            var questionGroupId = button.getAttribute('data-question-group-id');
+            
+            var questionElement = button.parentNode.querySelector('.question');
+            
+            var studentAnswerElements = button.parentNode.querySelectorAll('.student-answers-table tbody td:nth-child(2)');
+            
+            feedbackElements = button.parentNode.querySelectorAll('.student-answers-table tbody td:nth-child(3)');
+            scoreElements = button.parentNode.querySelectorAll('.student-answers-table tbody td:last-child');
+            question = questionElement.textContent;
+            studentAnswers = [];
+            studentAnswerElements.forEach(function(element) {
+                studentAnswers.push(element.textContent);
+            });
+
+            // Open the score window using Flask route
+            window.open('/score_window/' + questionGroupId, '_blank', 'width=600,height=400,top=200,left=400');
+        }
+
+        var studentData = [];
+
+        function receiveStudentAnswerAndScore(studentAnswer, score) {
+            // Add your code here to handle the received data
+            studentData.push({
+                studentAnswer: studentAnswer,
+                score: score
+            });
+
+            console.log("Received Student Answer: " + studentAnswer);
+            console.log("Received Score: " + score);
+
+            console.log(studentData.length);
+
+            if (studentData.length === 2) {
+                scoreStudentAnswers();
+            }
+        }
+
+        function scoreStudentAnswers() {
+            console.log(studentData);
+
+            // Create a JSON object with the data
+            var data = {
+                student_data: studentData,
+                question: question,
+                student_answers: studentAnswers
+            };
+            
+            console.log(data);
+            
+
+            // Send the data to the server for scoring
+            fetch('/score', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                // Process the scores returned from the server
+                var scores = data.scores;
+                var feedbacks = data.feedbacks;
+
+                // Update the table with the scores
+                scoreElements.forEach(function(element, index) {
+                    element.textContent = scores[index];
+                });
+                // Update the table with the feedback
+                feedbackElements.forEach(function(element, index) {
+                    element.textContent = feedbacks[index];
+                });
+            })
+            .catch(function(error) {
+                console.log('Error scoring student answers:', error);
+            });
+            
+        }
+    </script>
+</body>
+</html>
